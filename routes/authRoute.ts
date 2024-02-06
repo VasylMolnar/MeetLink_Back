@@ -1,9 +1,13 @@
 const router = require('express').Router()
-const authController = require('../controllers/authController')
+import {
+    handleRegister,
+    handleLogin,
+    handleLogout,
+} from '../controllers/authController'
 
 router
-    .post('/', authController.handleRegister)
-    .post('/login', authController.handleLogin)
-    .post('/logout', authController.handleLogout)
+    .post('/', handleRegister)
+    .post('/login', handleLogin)
+    .post('/logout', handleLogout)
 
 module.exports = router
