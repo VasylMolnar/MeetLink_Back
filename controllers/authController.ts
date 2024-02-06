@@ -1,6 +1,7 @@
 import User from '../model/User'
 import { format } from 'date-fns'
 import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
 // Register new user
 const handleRegister = async (req: any, res: any) => {
@@ -34,10 +35,94 @@ const handleRegister = async (req: any, res: any) => {
         res.status(500).json({ message: err })
     }
 }
+
 // Login user
-const handleLogin = async (req: any, res: any) => {}
+const handleLogin = async (req: any, res: any) => {
+    const { email, password } = req.body
+
+    if (!email || !password)
+        return res
+            .status(400)
+            .json({ message: 'Email and password are required.' })
+
+    //find user
+    const currentUser = await User.findOne({ email: email }).exec()
+
+    if (!currentUser)
+        return res.status(401).json({
+            message: 'User not found. Maybe email  incorrect',
+        })
+
+    //check PWD
+    const pwdMatch = await bcrypt.compare(password, currentUser.password)
+
+    if (pwdMatch) {
+        const accessToken = jwt.sign(
+            {
+                UserInfo: {
+                    id: currentUser._id,
+                    username: currentUser.username,
+                },
+            },
+            `${process.env.ACCESS_TOKEN_SECRET}`,
+            {
+                expiresIn: '30s',
+            }
+        )
+
+        const refreshToken = jwt.sign(
+            { email },
+            `${process.env.REFRESH_TOKEN_SECRET}`,
+            { expiresIn: '1d' }
+        )
+
+        currentUser.refreshToken = refreshToken
+        await currentUser.save()
+
+        res.cookie('NewRequestJWT', refreshToken, {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true,
+            maxAge: 24 * 60 * 60 * 1000,
+        })
+
+        res.json({ accessToken })
+    } else {
+        return res.status(401).json({
+            message: 'Email or password error.',
+        })
+    }
+}
 
 // Logout user
-const handleLogout = async (req: any, res: any) => {}
+const handleLogout = async (req: any, res: any) => {
+    const cookies = req.cookies
+
+    if (!cookies.NewRequestJWT) return res.sendStatus(204)
+
+    //find user by refreshJWT
+    const currentUser = await User.findOne({
+        refreshToken: cookies.NewRequestJWT,
+    }).exec()
+
+    if (!currentUser) {
+        res.clearCookie('NewRequestJWT', {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true,
+        })
+        return res.sendStatus(204)
+    }
+
+    currentUser.refreshToken = ''
+    await currentUser.save()
+
+    res.clearCookie('NewRequestJWT', {
+        httpOnly: true,
+        sameSite: 'None',
+        secure: true,
+    })
+    res.sendStatus(204)
+}
 
 export { handleRegister, handleLogin, handleLogout }

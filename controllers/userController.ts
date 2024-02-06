@@ -1,10 +1,14 @@
+import User from '../model/User'
+
 //Get user
-const handleGetUser = (req, res) => {}
+const handleGetUser = (req: any, res: any) => {
+    const { id } = req.body
+}
 
 // Update user
-const handlerUpdateUser = (req, res) => {}
+const handlerUpdateUser = (req: any, res: any) => {}
 
 //Delete user
-const handlerDeleteUser = (req, res) => {}
+const handlerDeleteUser = (req: any, res: any) => {}
 
-module.exports = { handleGetUser, handlerUpdateUser, handlerDeleteUser }
+export { handleGetUser, handlerUpdateUser, handlerDeleteUser }
