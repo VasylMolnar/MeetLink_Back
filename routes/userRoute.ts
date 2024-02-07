@@ -6,8 +6,9 @@ import {
 } from '../controllers/userController'
 
 router
-    .get('/', handleGetUser)
-    .put('/', handlerUpdateUser)
-    .delete('/', handlerDeleteUser)
+    .route('/:id')
+    .get(handleGetUser)
+    .put(handlerUpdateUser)
+    .delete(handlerDeleteUser)
 
 module.exports = router

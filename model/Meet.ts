@@ -1,0 +1,39 @@
+import mongoose from 'mongoose'
+import { Schema } from 'mongoose'
+
+const meetSchema = new Schema({
+    adminID: {
+        type: String,
+        required: true,
+    },
+
+    meetName: {
+        type: String,
+        required: true,
+    },
+
+    description: {
+        type: String,
+        required: true,
+    },
+
+    time: {
+        type: String,
+        required: true,
+    },
+
+    date: {
+        type: Date,
+        required: true,
+    },
+
+    img: {
+        name: { type: String },
+        data: { type: Buffer },
+        contentType: { type: String },
+    },
+
+    userList: [{ type: String }],
+})
+
+export default mongoose.model('Meet', meetSchema)

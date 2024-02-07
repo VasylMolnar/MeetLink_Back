@@ -27,7 +27,7 @@ app.use('/auth', require(path.join(__dirname, 'routes', 'authRoute')))
 
 //private
 app.use('/user', require(path.join(__dirname, 'routes', 'userRoute')))
-// app.use('/meet', require(path.join(__dirname, 'routes', 'meetRoute')))
+app.use('/meet', require(path.join(__dirname, 'routes', 'meetRoute')))
 
 app.all('*', (req: any, res: any) => {
     res.status(404).json({ error: '404 Not Found' })

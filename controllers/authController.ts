@@ -5,9 +5,9 @@ import jwt from 'jsonwebtoken'
 
 // Register new user
 const handleRegister = async (req: any, res: any) => {
-    const { email, username, surname, password, phoneNumber } = req.body
+    const { email, username, surname, password } = req.body
 
-    if (!email || !username || !surname || !password || !phoneNumber)
+    if (!email || !username || !surname || !password)
         return res.status(400).json({ message: 'All fields  are required.' })
 
     // check for duplicate email in the db
@@ -25,7 +25,6 @@ const handleRegister = async (req: any, res: any) => {
             email,
             username,
             surname,
-            phoneNumber,
             password: hashedPwd,
             date: newData,
         })
