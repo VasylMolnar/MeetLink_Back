@@ -12,7 +12,6 @@ const handleRegister = async (req: any, res: any) => {
 
     // check for duplicate email in the db
     const emailDuplicate = await User.findOne({ email: email }).exec()
-
     if (emailDuplicate)
         return res.status(409).json({ message: 'Email is already in use' })
 
@@ -20,7 +19,6 @@ const handleRegister = async (req: any, res: any) => {
     try {
         const hashedPwd = await bcrypt.hash(password, 10)
         const newData = format(new Date(), 'yyyy-MM-dd\tHH:mm:ss')
-
         await User.create({
             email,
             username,
@@ -29,7 +27,7 @@ const handleRegister = async (req: any, res: any) => {
             date: newData,
         })
 
-        res.status(201).json({ success: `New user ${username} created!` })
+        res.status(201).json({ message: `New user ${username} created!` })
     } catch (err) {
         res.status(500).json({ message: err })
     }
@@ -65,7 +63,7 @@ const handleLogin = async (req: any, res: any) => {
             },
             `${process.env.ACCESS_TOKEN_SECRET}`,
             {
-                expiresIn: '30s',
+                expiresIn: '1m', //30s
             }
         )
 

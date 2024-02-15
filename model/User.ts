@@ -22,6 +22,18 @@ const userSchema = new Schema({
         required: true,
     },
 
+    phoneNumber: {
+        type: String,
+    },
+
+    region: {
+        type: String,
+    },
+
+    city: {
+        type: String,
+    },
+
     date: {
         type: Date,
         required: true,

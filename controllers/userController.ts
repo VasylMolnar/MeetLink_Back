@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
 import User from '../model/User'
 import Meet from '../model/Meet'
 
@@ -11,7 +13,7 @@ const handleGetUser = async (req: any, res: any) => {
     try {
         const currentUser = await User.findById(
             id,
-            '-password -date -refreshToken  -__v'
+            '-_id -password -date -refreshToken  -__v'
         ).exec()
 
         if (!currentUser)
@@ -26,7 +28,7 @@ const handleGetUser = async (req: any, res: any) => {
         //if user is invited we find all meet by meetList -> id
         const meetIds = currentUser.meetList
 
-        const meetDetails = await Meet.find({ _id: { $in: meetIds } })
+        const meetDetails = await Meet.find({ _id: { $in: meetIds } }) //add user id for secureete
 
         res.status(201).json({
             ...currentUser.toObject(),
@@ -39,9 +41,96 @@ const handleGetUser = async (req: any, res: any) => {
 }
 
 // Update user
-const handlerUpdateUser = async (req: any, res: any) => {}
+const handlerUpdateUser = async (req: any, res: any) => {
+    const { id } = req.params
+    if (!id) return res.status(400).json({ message: 'User id is required.' })
+
+    let updateData = { ...req.body }
+
+    //find user
+    const currentUser = await User.findById({ _id: id }).exec()
+    if (!currentUser)
+        return res.status(501).json({ message: 'User not found.' })
+
+    if (currentUser.email !== updateData.email) {
+        updateData.refreshToken = jwt.sign(
+            { email: updateData.email }, //decoded new Email for refreshTokenController
+            `${process.env.REFRESH_TOKEN_SECRET}`,
+            { expiresIn: '1d' }
+        )
+
+        res.cookie('jwt', updateData.refreshToken, {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true,
+            maxAge: 24 * 60 * 60 * 1000,
+        })
+    }
+
+    if (updateData.password === '') {
+        updateData = { ...updateData, password: currentUser.password }
+    } else {
+        const hashedPwd = await bcrypt.hash(updateData.password, 10)
+        updateData = { ...updateData, password: hashedPwd }
+    }
+
+    //save update data to User
+    try {
+        await currentUser.updateOne({ ...updateData }, { ...currentUser })
+
+        res.status(200).json({
+            message: 'User successfully update',
+        })
+    } catch (e) {
+        res.status(501).json({ message: 'User cant be update' })
+    }
+}
 
 //Delete user
-const handlerDeleteUser = async (req: any, res: any) => {}
+const handlerDeleteUser = async (req: any, res: any) => {
+    const { id } = req.params
 
-export { handleGetUser, handlerUpdateUser, handlerDeleteUser }
+    if (!id) return res.status(400).json({ message: 'User id is required.' })
+
+    //find user
+    const currentUser = await User.findOneAndDelete({ _id: id }).exec()
+
+    if (!currentUser) {
+        res.status(501).json({ message: 'User cant be deleted' })
+    } else {
+        res.status(200).json({ message: 'User successfully deleted' })
+    }
+}
+
+//Upload img
+const handleUploadImg = async (req: any, res: any) => {
+    const { id } = req.params
+    if (!id) return res.status(400).json({ message: 'User id is required.' })
+
+    const imageInfo = req.file
+    const folderToSave = req.body.folder
+
+    // console.log(folderToSave, id, imageInfo)
+
+    // find User
+    const currentUser = await User.findById({ _id: id }).exec()
+    if (!currentUser) return res.status(501).json({ message: 'User not found' })
+
+    try {
+        currentUser.avatar = {
+            name: imageInfo.originalname,
+            data: imageInfo.buffer,
+            contentType: imageInfo.mimetype,
+        }
+
+        await currentUser.save()
+
+        res.status(201).json({
+            message: 'Зображення успішно завантажено на сервер!',
+        })
+    } catch (e) {
+        res.status(501).json({ message: 'User cant be update' })
+    }
+}
+
+export { handleGetUser, handlerUpdateUser, handlerDeleteUser, handleUploadImg }
