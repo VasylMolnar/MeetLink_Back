@@ -3,12 +3,16 @@ import {
     handlerCreateMeet,
     handlerUpdateMeet,
     handlerDeleteMeet,
+    handleUploadImg,
 } from '../controllers/meetController'
 
-router
-    .route('/')
-    .post(handlerCreateMeet)
-    .put(handlerUpdateMeet)
-    .delete(handlerDeleteMeet)
+import multer from 'multer'
+const upload = multer()
+
+router.post('/', handlerCreateMeet)
+
+router.route('/:id').put(handlerUpdateMeet).delete(handlerDeleteMeet)
+
+router.post('/:id/uploads', upload.single('image'), handleUploadImg)
 
 module.exports = router
