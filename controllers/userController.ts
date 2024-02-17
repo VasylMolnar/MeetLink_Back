@@ -11,7 +11,7 @@ const handleGetUser = async (req: any, res: any) => {
 
     //find user by id
     try {
-        const currentUser = await User.findById(
+        let currentUser = await User.findById(
             id,
             '-_id -password -date -refreshToken  -__v'
         ).exec()
@@ -30,10 +30,9 @@ const handleGetUser = async (req: any, res: any) => {
 
         const meetDetails = await Meet.find({ _id: { $in: meetIds } }) //add user id for secureete
 
-        res.status(201).json({
-            ...currentUser.toObject(),
-            meetList: meetDetails,
-        })
+        currentUser.meetList = meetDetails
+
+        res.status(201).send(currentUser)
     } catch (error) {
         console.error('Error fetching user:', error)
         res.status(500).json({ message: 'Internal Server Error' })
@@ -108,8 +107,8 @@ const handleUploadImg = async (req: any, res: any) => {
     if (!id) return res.status(400).json({ message: 'User id is required.' })
 
     const imageInfo = req.file
-    const folderToSave = req.body.folder
 
+    const folderToSave = req.body.folder
     // console.log(folderToSave, id, imageInfo)
 
     // find User

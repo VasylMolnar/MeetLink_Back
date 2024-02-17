@@ -45,7 +45,8 @@ const userSchema = new Schema({
         contentType: { type: String },
     },
 
-    meetList: [{ type: String }],
+    // meetList: [{ type: String }],
+    meetList: [{ type: Schema.Types.Mixed }],
 
     refreshToken: {
         type: String,

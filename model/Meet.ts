@@ -19,12 +19,10 @@ const meetSchema = new Schema({
 
     time: {
         type: String,
-        required: true,
     },
 
     date: {
         type: Date,
-        required: true,
     },
 
     img: {

@@ -9,10 +9,11 @@ import {
 import multer from 'multer'
 const upload = multer()
 
-router.post('/', handlerCreateMeet)
+router.post('/', upload.single('image'), handlerCreateMeet)
 
 router.route('/:id').put(handlerUpdateMeet).delete(handlerDeleteMeet)
 
+//Update meet img
 router.post('/:id/uploads', upload.single('image'), handleUploadImg)
 
 module.exports = router

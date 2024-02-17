@@ -3,9 +3,12 @@ import User from '../model/User'
 
 //Create meet
 const handlerCreateMeet = async (req: any, res: any) => {
-    const { adminID, meetName, description, time, date } = req.body
+    const { adminID, meetName, description, time, date } = JSON.parse(
+        req.body.values
+    )
+    const imageInfo = req.file
 
-    if (!adminID || !meetName || !description || !time || !date)
+    if (!adminID || !meetName || !description || !time || !date || !imageInfo)
         return res.status(400).json({ message: 'All fields  are required.' })
 
     //find user
@@ -22,10 +25,14 @@ const handlerCreateMeet = async (req: any, res: any) => {
             time,
             date,
             userList: [adminID],
+            img: {
+                name: imageInfo.originalname,
+                data: imageInfo.buffer,
+                contentType: imageInfo.mimetype,
+            },
         })
 
         const meetId = response['_id'].toString()
-
         currentUser.meetList.push(meetId)
         await currentUser.save()
 
