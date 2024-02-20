@@ -1,6 +1,49 @@
 import Meet from '../model/Meet'
 import User from '../model/User'
 
+//Get current meet
+
+const handlerGetCurrentMeet = async (req: any, res: any) => {
+    const { id } = req.params
+    if (!id) return res.status(400).json({ message: 'Meet id is required.' })
+
+    //find meet by meet id
+    const currentMeet = await Meet.findById(id).exec()
+    if (!currentMeet)
+        return res.status(501).json({ message: 'Meet not found.' })
+
+    try {
+        //Find all user when user is invited to meet
+        if (currentMeet.userList.length === 0) {
+            return res.status(200).json(currentMeet)
+        }
+
+        const userIds = currentMeet.userList
+
+        const userDetails = await User.find(
+            {
+                _id: { $in: userIds },
+                meetList: id,
+            },
+            '-password -date -refreshToken -meetList -__v'
+        )
+
+        const validUserIds = userDetails.map((user) => user._id.toString())
+        currentMeet.userList = currentMeet.userList.filter((userId) =>
+            validUserIds.includes(userId)
+        )
+
+        await currentMeet.save()
+
+        currentMeet.userList = userDetails
+
+        res.status(201).send(currentMeet)
+    } catch (error) {
+        console.error('Error fetching user:', error)
+        res.status(500).json({ message: 'Internal Server Error' })
+    }
+}
+
 //Create meet
 const handlerCreateMeet = async (req: any, res: any) => {
     const { adminID, meetName, description, time, date } = JSON.parse(
@@ -67,7 +110,7 @@ const handlerUpdateMeet = async (req: any, res: any) => {
     }
 }
 
-//Delete meet
+//Delete meet admin
 const handlerDeleteMeet = async (req: any, res: any) => {
     const { id } = req.params
     if (!id) return res.status(400).json({ message: 'Meet id is required.' })
@@ -97,8 +140,52 @@ const handlerDeleteMeet = async (req: any, res: any) => {
     }
 }
 
+//Leave current meet
+const handlerLeaveMeet = async (req: any, res: any) => {
+    const currentMeetId = req.path.split('/')[1]
+    const currentUserId = req.path.split('/')[2]
+
+    if (!currentMeetId || !currentUserId)
+        return res
+            .status(400)
+            .json({ message: 'Meet and User id is required.' })
+
+    //find meet by meet id
+    const currentMeet = await Meet.findById(currentMeetId).exec()
+    if (!currentMeet)
+        return res.status(501).json({ message: 'Meet cant be deleted' })
+
+    //if we are admin this meet
+    if (currentMeet.adminID === currentUserId) {
+        return res.status(401).json({ message: 'You can`t leave this meet.' })
+    }
+
+    //find user
+    const currentUser = await User.findById(currentUserId).exec()
+    if (!currentUser)
+        return res.status(501).json({ message: 'User not found.' })
+
+    try {
+        currentMeet.userList = currentMeet.userList.filter(
+            (userId) => userId !== currentUserId
+        )
+
+        await currentMeet.save()
+
+        currentUser.meetList = currentUser.meetList.filter(
+            (meetId) => meetId !== currentMeetId
+        )
+
+        await currentUser.save()
+
+        res.status(200).json({ message: 'Meet successfully deleted' })
+    } catch (err) {
+        res.status(501).json({ message: 'Meet cant be deleted' })
+    }
+}
+
 //Upload img
-const handleUploadImg = async (req: any, res: any) => {
+const handlerUploadImg = async (req: any, res: any) => {
     const { id } = req.params
     if (!id) return res.status(400).json({ message: 'Meet id is required.' })
 
@@ -125,8 +212,10 @@ const handleUploadImg = async (req: any, res: any) => {
 }
 
 export {
+    handlerGetCurrentMeet,
     handlerCreateMeet,
     handlerUpdateMeet,
     handlerDeleteMeet,
-    handleUploadImg,
+    handlerLeaveMeet,
+    handlerUploadImg,
 }

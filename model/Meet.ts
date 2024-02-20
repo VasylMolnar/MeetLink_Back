@@ -22,7 +22,7 @@ const meetSchema = new Schema({
     },
 
     date: {
-        type: Date,
+        type: String,
     },
 
     img: {
@@ -31,7 +31,8 @@ const meetSchema = new Schema({
         contentType: { type: String },
     },
 
-    userList: [{ type: String }],
+    // userList: [{ type: String }],
+    userList: [{ type: Schema.Types.Mixed }],
 })
 
 export default mongoose.model('Meet', meetSchema)

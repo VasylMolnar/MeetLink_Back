@@ -13,7 +13,7 @@ const handleGetUser = async (req: any, res: any) => {
     try {
         let currentUser = await User.findById(
             id,
-            '-_id -password -date -refreshToken  -__v'
+            '-password -date -refreshToken  -__v'
         ).exec()
 
         if (!currentUser)
@@ -28,10 +28,20 @@ const handleGetUser = async (req: any, res: any) => {
         //if user is invited we find all meet by meetList -> id
         const meetIds = currentUser.meetList
 
-        const meetDetails = await Meet.find({ _id: { $in: meetIds } }) //add user id for secureete
+        const meetDetails = await Meet.find({
+            _id: { $in: meetIds },
+            userList: id,
+        })
+
+        // filter incorrect meetId (if admin delete meet)
+        const validMeetIds = meetDetails.map((meet) => meet._id.toString())
+        currentUser.meetList = currentUser.meetList.filter((meetId) =>
+            validMeetIds.includes(meetId)
+        )
+
+        await currentUser.save()
 
         currentUser.meetList = meetDetails
-
         res.status(201).send(currentUser)
     } catch (error) {
         console.error('Error fetching user:', error)
