@@ -36,6 +36,7 @@ app.use('/refresh', require(path.join(__dirname, 'routes', 'refreshRoute')))
 app.use(verifyJWT)
 app.use('/user', require(path.join(__dirname, 'routes', 'userRoute')))
 app.use('/meet', require(path.join(__dirname, 'routes', 'meetRoute')))
+app.use('/meet-access', require(path.join(__dirname, 'routes', 'accessRoute')))
 
 app.all('*', (req: any, res: any) => {
     res.status(404).json({ error: '404 Not Found' })

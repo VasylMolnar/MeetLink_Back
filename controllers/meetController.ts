@@ -2,17 +2,16 @@ import Meet from '../model/Meet'
 import User from '../model/User'
 
 //Get current meet
-
 const handlerGetCurrentMeet = async (req: any, res: any) => {
     const { id } = req.params
     if (!id) return res.status(400).json({ message: 'Meet id is required.' })
 
-    //find meet by meet id
-    const currentMeet = await Meet.findById(id).exec()
-    if (!currentMeet)
-        return res.status(501).json({ message: 'Meet not found.' })
-
     try {
+        //find meet by meet id
+        const currentMeet = await Meet.findById(id).exec()
+        if (!currentMeet)
+            return res.status(404).json({ message: 'Meet not found.' })
+
         //Find all user when user is invited to meet
         if (currentMeet.userList.length === 0) {
             return res.status(200).json(currentMeet)
@@ -39,7 +38,7 @@ const handlerGetCurrentMeet = async (req: any, res: any) => {
 
         res.status(201).send(currentMeet)
     } catch (error) {
-        console.error('Error fetching user:', error)
+        // console.error('Error fetching user:', error)
         res.status(500).json({ message: 'Internal Server Error' })
     }
 }
