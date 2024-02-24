@@ -15,12 +15,10 @@ export const verifyJWT = async (req: any, res: any, next: any) => {
             if (err) return res.sendStatus(403) //invalid token
 
             const id = decoded.UserInfo.id
-            const username = decoded.UserInfo.username
 
             //check sign token to user
             const currentUser = await User.findOne({
                 _id: id,
-                username,
             })
             if (!currentUser) return res.sendStatus(401)
 

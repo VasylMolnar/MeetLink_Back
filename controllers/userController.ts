@@ -68,7 +68,7 @@ const handlerUpdateUser = async (req: any, res: any) => {
             { expiresIn: '1d' }
         )
 
-        res.cookie('jwt', updateData.refreshToken, {
+        res.cookie('NewRequestJWT', updateData.refreshToken, {
             httpOnly: true,
             sameSite: 'None',
             secure: true,
