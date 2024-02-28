@@ -34,6 +34,7 @@ const handlerAccessReq = async (req: any, res: any) => {
             username: currentUser.username,
             surname: currentUser.surname,
             email: currentUser.email,
+            type: 'Request',
         })
 
         await currentMeetAdmin.save()
@@ -46,7 +47,6 @@ const handlerAccessReq = async (req: any, res: any) => {
 
 //Get message from Admin
 const handlerAccessRes = async (req: any, res: any) => {
-    console.log(req.body)
     const { meetId, userId, messageId, access } = req.body
     if (!meetId || !userId || !messageId)
         return res.status(400).json({ message: 'All field are required.' })
@@ -80,6 +80,15 @@ const handlerAccessRes = async (req: any, res: any) => {
             await currentMeet.save()
 
             currentUser.meetList.push(meetId)
+            currentUser.messages.push({
+                _id: new mongoose.Types.ObjectId(),
+                meetId,
+                userId: currentMeetAdmin._id,
+                username: currentMeetAdmin.username,
+                surname: currentMeetAdmin.surname,
+                email: currentMeetAdmin.email,
+                type: 'Response',
+            })
             await currentUser.save()
         }
 
@@ -90,6 +99,27 @@ const handlerAccessRes = async (req: any, res: any) => {
     }
 }
 
-export { handlerAccessReq, handlerAccessRes }
+const handlerDeleteMessage = async (req: any, res: any) => {
+    const { userId, messageId } = req.body
+    if (!userId || !messageId)
+        return res.status(400).json({ message: 'All field are required.' })
 
-//add api to delete message
+    //find user
+    const currentUser = await User.findById({ _id: userId })
+    if (!currentUser)
+        return res.status(401).json({ message: 'User not found.' })
+
+    try {
+        currentUser.messages = currentUser.messages.filter(
+            (message) => message._id.toString() !== messageId
+        )
+        await currentUser.save()
+
+        res.status(200).json({ message: `Successful` })
+    } catch (error) {
+        console.error('Error  send message to Admin:', error)
+        res.status(500).json({ message: 'Internal Server Error' })
+    }
+}
+
+export { handlerAccessReq, handlerAccessRes, handlerDeleteMessage }
