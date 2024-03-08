@@ -11,9 +11,9 @@ import errorLog from './middleware/errorLog'
 import { corsOptions } from './config/corsOptions'
 import { credentials } from './middleware/credentials'
 import { verifyJWT } from './middleware/verifyJWT'
+import { app, server } from './socket/socket'
 
 dotenv.config()
-const app = express()
 const PORT = process.env.PORT
 
 app.use(successLog)
@@ -46,5 +46,5 @@ app.use(errorLog)
 
 mongoose.connection.once('open', () => {
     signale.pending('Connected to MongoDB')
-    app.listen(PORT, () => signale.success(`Server running on port ${PORT}`))
+    server.listen(PORT, () => signale.success(`Server running on port ${PORT}`))
 })

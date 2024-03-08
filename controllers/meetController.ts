@@ -1,5 +1,6 @@
 import Meet from '../model/Meet'
 import User from '../model/User'
+import { v4 as uuidv4 } from 'uuid'
 
 //Get current meet
 const handlerGetCurrentMeet = async (req: any, res: any) => {
@@ -24,7 +25,7 @@ const handlerGetCurrentMeet = async (req: any, res: any) => {
                 _id: { $in: userIds },
                 meetList: id,
             },
-            '-password -date -refreshToken -meetList -__v'
+            '-password -date -refreshToken -meetList -messages -__v'
         )
 
         const validUserIds = userDetails.map((user) => user._id.toString())
@@ -66,6 +67,7 @@ const handlerCreateMeet = async (req: any, res: any) => {
             description,
             time,
             date,
+            roomId: uuidv4(),
             userList: [adminID],
             img: {
                 name: imageInfo.originalname,
