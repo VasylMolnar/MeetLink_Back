@@ -68,6 +68,7 @@ const handlerCreateMeet = async (req: any, res: any) => {
             time,
             date,
             roomId: uuidv4(),
+            conferenceId: uuidv4(),
             userList: [adminID],
             img: {
                 name: imageInfo.originalname,

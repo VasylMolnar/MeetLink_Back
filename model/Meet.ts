@@ -62,6 +62,11 @@ const meetSchema = new Schema({
         required: true,
     },
 
+    conferenceId: {
+        type: String,
+        required: true,
+    },
+
     // userList: [{ type: String }],
     userList: [{ type: Schema.Types.Mixed }],
 
