@@ -3,7 +3,11 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { whitelist } from '../config/allowedOrigins'
 import signale from 'signale'
-import { handlerJoinRoom, handlerSendNewMessage } from './socketHandlers'
+import {
+    handlerJoinRoom,
+    handlerSendNewMessage,
+    handlerJoinConference,
+} from './socketHandlers'
 
 const app = express()
 const server = createServer(app)
@@ -23,27 +27,32 @@ const io = new Server(server, {
 
 // WebSocket
 io.on('connection', (socket) => {
-    signale.info('A user connected')
+    signale.info('A user connected to Socket')
 
     socket.on('joinRoom', async (meetId, roomId, userId) => {
         // Join to Room and Load message history
-        await handlerJoinRoom(socket, meetId, roomId, userId)
+        await handlerJoinRoom({ socket, meetId, roomId, userId })
     })
 
     socket.on('sendNewMessage', async (data) => {
         // Send new message
-        await handlerSendNewMessage(io, socket, data)
+        await handlerSendNewMessage({ io, socket, data })
     })
 
-    socket.on('signal', (data) => {
-        io.to(data.roomId).emit('signal', {
-            userId: data.userId,
-            signal: data.signal,
+    socket.on('joinConference', async (meetId, conferenceId, userId) => {
+        //Join to conference
+        await handlerJoinConference({
+            io,
+            socket,
+            meetId,
+            conferenceId,
+            userId,
         })
     })
 
     socket.on('disconnect', () => {
         signale.info('A user disconnected ')
+        socket.disconnect()
     })
 })
 

@@ -1,12 +1,23 @@
 import signale from 'signale'
 import Meet from '../model/Meet'
 
-const handlerJoinRoom = async (
-    socket: any,
-    meetId: any,
-    roomId: any,
-    userId: any
-) => {
+interface IRoom {
+    io?: any
+    socket?: any
+    meetId?: string
+    roomId?: string
+    userId?: string
+    conferenceId?: string
+    data?: any
+}
+
+const conferenceUsers: Record<string, string[]> = {}
+
+const handlerJoinRoom = async ({ socket, meetId, roomId, userId }: IRoom) => {
+    if (!meetId || !roomId || !userId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
     const meet = await Meet.findById(meetId).exec()
     if (!meet) {
         return socket.emit('error', { message: 'Meet not found' })
@@ -23,17 +34,25 @@ const handlerJoinRoom = async (
     }
 
     signale.info(
-        `A user  ${userId} join to meet ${meetId} with secret roomId`,
-        roomId
+        `A user  ${userId} from this meet ${meetId}  join to room ${roomId}`
     )
 
     socket.join(roomId)
 
     const messages = meet.messages
     socket.emit('loadMessageHistory', messages)
+
+    // User Leave from room
+    socket.on('disconnect', () => {
+        signale.info(
+            `A user  ${userId} from this meet ${meetId}  leave from room ${roomId}`
+        )
+
+        socket.leave(roomId)
+    })
 }
 
-const handlerSendNewMessage = async (io: any, socket: any, data: any) => {
+const handlerSendNewMessage = async ({ io, socket, data }: IRoom) => {
     const { meetId, roomId, message, senderId, username, surname, avatar } =
         data
 
@@ -79,4 +98,72 @@ const handlerSendNewMessage = async (io: any, socket: any, data: any) => {
     }
 }
 
-export { handlerJoinRoom, handlerSendNewMessage }
+const handlerJoinConference = async ({
+    io,
+    socket,
+    meetId,
+    userId,
+    conferenceId,
+}: IRoom) => {
+    if (!meetId || !conferenceId || !userId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    const meet = await Meet.findById(meetId).exec()
+    if (!meet) {
+        return socket.emit('error', { message: 'Meet not found' })
+    }
+
+    if (meet.conferenceId !== conferenceId) {
+        return socket.emit('error', { message: 'Conference not found' })
+    }
+
+    if (!meet.userList.includes(userId)) {
+        return socket.emit('error', {
+            message: 'Access denied! User not found',
+        })
+    }
+
+    signale.info(
+        `A user  ${userId} from this meet  ${meetId}  join to conference ${conferenceId}`
+    )
+
+    socket.join(conferenceId)
+
+    if (!conferenceUsers[conferenceId]) {
+        conferenceUsers[conferenceId] = []
+    }
+    conferenceUsers[conferenceId].push(userId) //or other info about user
+
+    socket.to(conferenceId).emit('user connected', userId)
+
+    socket.on('disconnect', () => {
+        signale.info(
+            `A user  ${userId} from this meet ${meetId}  leave from conference ${conferenceId}`
+        )
+        socket.to(conferenceId).emit('user disconnected', userId)
+        socket.leave(conferenceId)
+    })
+
+    // io.to(conferenceId).emit('updateUserList', conferenceUsers[conferenceId])
+
+    // // User Leave from conference
+    // socket.on('disconnect', () => {
+    //     signale.info(
+    //         `A user  ${userId} from this meet ${meetId}  leave from conference ${conferenceId}`
+    //     )
+
+    //     socket.leave(conferenceId)
+
+    //     conferenceUsers[conferenceId] = conferenceUsers[conferenceId].filter(
+    //         (id) => id !== userId
+    //     )
+
+    //     io.to(conferenceId).emit(
+    //         'updateUserList',
+    //         conferenceUsers[conferenceId]
+    //     )
+    // })
+}
+
+export { handlerJoinRoom, handlerSendNewMessage, handlerJoinConference }
