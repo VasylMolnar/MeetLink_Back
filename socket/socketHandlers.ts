@@ -166,4 +166,68 @@ const handlerJoinConference = async ({
     // })
 }
 
-export { handlerJoinRoom, handlerSendNewMessage, handlerJoinConference }
+const handleToggleCamera = async ({
+    meetId,
+    conferenceId,
+    userId,
+    socket,
+    isCameraOn,
+}: any) => {
+    if (!meetId || !conferenceId || !userId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    const meet = await Meet.findById(meetId).exec()
+    if (!meet) {
+        return socket.emit('error', { message: 'Meet not found' })
+    }
+
+    if (meet.conferenceId !== conferenceId) {
+        return socket.emit('error', { message: 'Conference not found' })
+    }
+
+    if (!meet.userList.includes(userId)) {
+        return socket.emit('error', {
+            message: 'Access denied! User not found',
+        })
+    }
+
+    socket.to(conferenceId).emit('userToggleCamera', userId, isCameraOn)
+}
+
+const handleToggleMicrophone = async ({
+    meetId,
+    conferenceId,
+    userId,
+    socket,
+    isMicrophoneOn,
+}: any) => {
+    if (!meetId || !conferenceId || !userId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    const meet = await Meet.findById(meetId).exec()
+    if (!meet) {
+        return socket.emit('error', { message: 'Meet not found' })
+    }
+
+    if (meet.conferenceId !== conferenceId) {
+        return socket.emit('error', { message: 'Conference not found' })
+    }
+
+    if (!meet.userList.includes(userId)) {
+        return socket.emit('error', {
+            message: 'Access denied! User not found',
+        })
+    }
+
+    socket.to(conferenceId).emit('userToggleMicro', userId, isMicrophoneOn)
+}
+
+export {
+    handlerJoinRoom,
+    handlerSendNewMessage,
+    handlerJoinConference,
+    handleToggleCamera,
+    handleToggleMicrophone,
+}
