@@ -41,16 +41,20 @@ io.on('connection', (socket) => {
         await handlerSendNewMessage({ io, socket, data })
     })
 
-    socket.on('joinConference', async (meetId, conferenceId, userId) => {
-        //Join to conference
-        await handlerJoinConference({
-            io,
-            socket,
-            meetId,
-            conferenceId,
-            userId,
-        })
-    })
+    socket.on(
+        'joinConference',
+        async (meetId, conferenceId, userId, metadata) => {
+            //Join to conference
+            await handlerJoinConference({
+                io,
+                socket,
+                meetId,
+                conferenceId,
+                userId,
+                metadata,
+            })
+        }
+    )
 
     socket.on(
         'toggleCamera',

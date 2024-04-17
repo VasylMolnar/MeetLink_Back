@@ -9,6 +9,7 @@ interface IRoom {
     userId?: string
     conferenceId?: string
     data?: any
+    metadata?: any
 }
 
 const conferenceUsers: Record<string, string[]> = {}
@@ -104,6 +105,7 @@ const handlerJoinConference = async ({
     meetId,
     userId,
     conferenceId,
+    metadata,
 }: IRoom) => {
     if (!meetId || !conferenceId || !userId) {
         return socket.emit('error', { message: 'Missing required fields' })
@@ -130,12 +132,12 @@ const handlerJoinConference = async ({
 
     socket.join(conferenceId)
 
-    if (!conferenceUsers[conferenceId]) {
-        conferenceUsers[conferenceId] = []
-    }
-    conferenceUsers[conferenceId].push(userId) //or other info about user
+    // if (!conferenceUsers[conferenceId]) {
+    //     conferenceUsers[conferenceId] = []
+    // }
+    // conferenceUsers[conferenceId].push(userId) //or other info about user
 
-    socket.to(conferenceId).emit('user connected', userId)
+    socket.to(conferenceId).emit('user connected', userId, metadata)
 
     socket.on('disconnect', () => {
         signale.info(
