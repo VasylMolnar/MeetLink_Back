@@ -226,10 +226,40 @@ const handleToggleMicrophone = async ({
     socket.to(conferenceId).emit('userToggleMicro', userId, isMicrophoneOn)
 }
 
+const handleSendNewMetaData = async ({
+    meetId,
+    conferenceId,
+    userId,
+    socket,
+    newMetaData,
+}: any) => {
+    if (!meetId || !conferenceId || !userId || !newMetaData) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    const meet = await Meet.findById(meetId).exec()
+    if (!meet) {
+        return socket.emit('error', { message: 'Meet not found' })
+    }
+
+    if (meet.conferenceId !== conferenceId) {
+        return socket.emit('error', { message: 'Conference not found' })
+    }
+
+    if (!meet.userList.includes(userId)) {
+        return socket.emit('error', {
+            message: 'Access denied! User not found',
+        })
+    }
+
+    socket.to(conferenceId).emit('userChangeMetaData', userId, newMetaData)
+}
+
 export {
     handlerJoinRoom,
     handlerSendNewMessage,
     handlerJoinConference,
     handleToggleCamera,
     handleToggleMicrophone,
+    handleSendNewMetaData,
 }

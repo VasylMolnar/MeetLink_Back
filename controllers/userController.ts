@@ -136,6 +136,7 @@ const handleUploadImg = async (req: any, res: any) => {
 
         res.status(201).json({
             message: 'Зображення успішно завантажено на сервер!',
+            avatar: currentUser.avatar,
         })
     } catch (e) {
         res.status(501).json({ message: 'User cant be update' })

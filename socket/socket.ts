@@ -9,6 +9,7 @@ import {
     handlerJoinConference,
     handleToggleCamera,
     handleToggleMicrophone,
+    handleSendNewMetaData,
 } from './socketHandlers'
 
 const app = express()
@@ -78,6 +79,19 @@ io.on('connection', (socket) => {
                 conferenceId,
                 userId,
                 isMicrophoneOn,
+            })
+        }
+    )
+
+    socket.on(
+        'userChangeMetaData',
+        async (meetId, conferenceId, userId, newMetaData) => {
+            await handleSendNewMetaData({
+                socket,
+                meetId,
+                conferenceId,
+                userId,
+                newMetaData,
             })
         }
     )
