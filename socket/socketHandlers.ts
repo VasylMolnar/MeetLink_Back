@@ -14,6 +14,7 @@ interface IRoom {
 
 const conferenceUsers: Record<string, string[]> = {}
 
+// chat
 const handlerJoinRoom = async ({ socket, meetId, roomId, userId }: IRoom) => {
     if (!meetId || !roomId || !userId) {
         return socket.emit('error', { message: 'Missing required fields' })
@@ -99,6 +100,7 @@ const handlerSendNewMessage = async ({ io, socket, data }: IRoom) => {
     }
 }
 
+// video meet
 const handlerJoinConference = async ({
     io,
     socket,
@@ -255,6 +257,50 @@ const handleSendNewMetaData = async ({
     socket.to(conferenceId).emit('userChangeMetaData', userId, newMetaData)
 }
 
+const handlerSendNewMeetMessage = async ({ io, socket, data }: IRoom) => {
+    const { meetId, conferenceId, message, senderId, username, surname } = data
+
+    if (
+        !meetId ||
+        !conferenceId ||
+        !message ||
+        !senderId ||
+        !username ||
+        !surname
+    ) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    const meet = await Meet.findById(meetId)
+    if (!meet) {
+        return socket.emit('error', { message: 'Meet not found' })
+    }
+
+    if (meet.conferenceId !== conferenceId) {
+        return socket.emit('error', { message: 'Conference not found' })
+    }
+
+    if (!meet.userList.includes(senderId)) {
+        return socket.emit('error', {
+            message: 'Access denied! User not found',
+        })
+    }
+
+    try {
+        const message = {
+            ...data,
+            createdAt: Date.now(),
+        }
+        io.to(conferenceId).emit('getNewMeetMessage', message)
+    } catch (error) {
+        signale.error('Failed to save message to database:', error)
+
+        return socket.emit('error', {
+            message: 'Failed to save message',
+        })
+    }
+}
+
 export {
     handlerJoinRoom,
     handlerSendNewMessage,
@@ -262,4 +308,5 @@ export {
     handleToggleCamera,
     handleToggleMicrophone,
     handleSendNewMetaData,
+    handlerSendNewMeetMessage,
 }

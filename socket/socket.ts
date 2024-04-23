@@ -10,6 +10,7 @@ import {
     handleToggleCamera,
     handleToggleMicrophone,
     handleSendNewMetaData,
+    handlerSendNewMeetMessage,
 } from './socketHandlers'
 
 const app = express()
@@ -95,6 +96,10 @@ io.on('connection', (socket) => {
             })
         }
     )
+
+    socket.on('sendNewMeetMessage', async (data) => {
+        await handlerSendNewMeetMessage({ io, socket, data })
+    })
 
     socket.on('disconnect', () => {
         signale.info('A user disconnected ')
