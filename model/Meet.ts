@@ -27,6 +27,35 @@ const messageSchema = new Schema({
     },
 })
 
+const attendeesSchema = new Schema({
+    date: {
+        type: String,
+    },
+
+    list: [
+        {
+            userId: {
+                type: String,
+                required: true,
+            },
+            username: {
+                type: String,
+                required: true,
+            },
+            surname: {
+                type: String,
+                required: true,
+            },
+            joinTime: {
+                type: String,
+            },
+            leaveTime: {
+                type: String,
+            },
+        },
+    ],
+})
+
 const meetSchema = new Schema({
     adminID: {
         type: String,
@@ -71,6 +100,20 @@ const meetSchema = new Schema({
     userList: [{ type: Schema.Types.Mixed }],
 
     messages: [messageSchema],
+
+    attendees: [attendeesSchema],
 })
 
 export default mongoose.model('Meet', meetSchema)
+
+// [
+//     {
+//         date:{
+//             type: Date,
+//             default: new Date
+//         },
+//         [attendeesSchema]
+
+//     }
+
+// ]

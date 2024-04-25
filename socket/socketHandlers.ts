@@ -1,5 +1,6 @@
 import signale from 'signale'
 import Meet from '../model/Meet'
+import User from '../model/User'
 
 interface IRoom {
     io?: any
@@ -11,8 +12,6 @@ interface IRoom {
     data?: any
     metadata?: any
 }
-
-const conferenceUsers: Record<string, string[]> = {}
 
 // chat
 const handlerJoinRoom = async ({ socket, meetId, roomId, userId }: IRoom) => {
@@ -132,42 +131,92 @@ const handlerJoinConference = async ({
         `A user  ${userId} from this meet  ${meetId}  join to conference ${conferenceId}`
     )
 
+    // add user to attendees list
+    const currentUser = await User.findById(userId).exec()
+
+    if (currentUser) {
+        const currentTime = new Date()
+        const currentHour = currentTime.getHours()
+        const currentMinute = currentTime.getMinutes()
+        const currentSecond = currentTime.getSeconds()
+
+        const currentDate = new Date().toLocaleDateString()
+
+        const currentAttendees = meet.attendees.find(
+            (item) => item.date === currentDate
+        )
+
+        if (currentAttendees) {
+            const user = currentAttendees.list.find(
+                (item) => item.userId === userId
+            )
+
+            if (user) {
+                user.joinTime = `${currentHour}:${currentMinute}:${currentSecond}`
+                user.leaveTime = null
+            } else {
+                currentAttendees.list.push({
+                    userId,
+                    username: currentUser.username,
+                    surname: currentUser.surname,
+                    joinTime: `${currentHour}:${currentMinute}:${currentSecond}`,
+                    leaveTime: null,
+                })
+            }
+        } else {
+            meet.attendees.push({
+                date: currentDate,
+                list: [
+                    {
+                        userId,
+                        username: currentUser.username,
+                        surname: currentUser.surname,
+                        joinTime: `${currentHour}:${currentMinute}:${currentSecond}`,
+                        leaveTime: null,
+                    },
+                ],
+            })
+        }
+
+        await meet.save()
+    }
+
     socket.join(conferenceId)
-
-    // if (!conferenceUsers[conferenceId]) {
-    //     conferenceUsers[conferenceId] = []
-    // }
-    // conferenceUsers[conferenceId].push(userId) //or other info about user
-
     socket.to(conferenceId).emit('user connected', userId, metadata)
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
+        const currentTime = new Date()
+        const currentHour = currentTime.getHours()
+        const currentMinute = currentTime.getMinutes()
+        const currentSecond = currentTime.getSeconds()
+
         signale.info(
             `A user  ${userId} from this meet ${meetId}  leave from conference ${conferenceId}`
         )
+
+        if (currentUser) {
+            const currentDate = new Date().toLocaleDateString()
+
+            const currentAttendees = meet.attendees.find(
+                (item) => item.date === currentDate
+            )
+
+            if (currentAttendees) {
+                const user = currentAttendees.list.find(
+                    (item) => item.userId === userId
+                )
+
+                if (user) {
+                    user.leaveTime = `${currentHour}:${currentMinute}:${currentSecond}`
+                }
+            }
+
+            await meet.save()
+        }
+
         socket.to(conferenceId).emit('user disconnected', userId)
         socket.leave(conferenceId)
     })
-
-    // io.to(conferenceId).emit('updateUserList', conferenceUsers[conferenceId])
-
-    // // User Leave from conference
-    // socket.on('disconnect', () => {
-    //     signale.info(
-    //         `A user  ${userId} from this meet ${meetId}  leave from conference ${conferenceId}`
-    //     )
-
-    //     socket.leave(conferenceId)
-
-    //     conferenceUsers[conferenceId] = conferenceUsers[conferenceId].filter(
-    //         (id) => id !== userId
-    //     )
-
-    //     io.to(conferenceId).emit(
-    //         'updateUserList',
-    //         conferenceUsers[conferenceId]
-    //     )
-    // })
 }
 
 const handleToggleCamera = async ({
