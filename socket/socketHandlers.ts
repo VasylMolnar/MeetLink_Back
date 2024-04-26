@@ -135,66 +135,12 @@ const handlerJoinConference = async ({
     const currentUser = await User.findById(userId).exec()
 
     if (currentUser) {
-        const currentTime = new Date()
-        const currentHour = currentTime.getHours()
-        const currentMinute = currentTime.getMinutes()
-        const currentSecond = currentTime.getSeconds()
+        try {
+            const currentTime = new Date()
+            const currentHour = currentTime.getHours()
+            const currentMinute = currentTime.getMinutes()
+            const currentSecond = currentTime.getSeconds()
 
-        const currentDate = new Date().toLocaleDateString()
-
-        const currentAttendees = meet.attendees.find(
-            (item) => item.date === currentDate
-        )
-
-        if (currentAttendees) {
-            const user = currentAttendees.list.find(
-                (item) => item.userId === userId
-            )
-
-            if (user) {
-                user.joinTime = `${currentHour}:${currentMinute}:${currentSecond}`
-                user.leaveTime = null
-            } else {
-                currentAttendees.list.push({
-                    userId,
-                    username: currentUser.username,
-                    surname: currentUser.surname,
-                    joinTime: `${currentHour}:${currentMinute}:${currentSecond}`,
-                    leaveTime: null,
-                })
-            }
-        } else {
-            meet.attendees.push({
-                date: currentDate,
-                list: [
-                    {
-                        userId,
-                        username: currentUser.username,
-                        surname: currentUser.surname,
-                        joinTime: `${currentHour}:${currentMinute}:${currentSecond}`,
-                        leaveTime: null,
-                    },
-                ],
-            })
-        }
-
-        await meet.save()
-    }
-
-    socket.join(conferenceId)
-    socket.to(conferenceId).emit('user connected', userId, metadata)
-
-    socket.on('disconnect', async () => {
-        const currentTime = new Date()
-        const currentHour = currentTime.getHours()
-        const currentMinute = currentTime.getMinutes()
-        const currentSecond = currentTime.getSeconds()
-
-        signale.info(
-            `A user  ${userId} from this meet ${meetId}  leave from conference ${conferenceId}`
-        )
-
-        if (currentUser) {
             const currentDate = new Date().toLocaleDateString()
 
             const currentAttendees = meet.attendees.find(
@@ -207,11 +153,77 @@ const handlerJoinConference = async ({
                 )
 
                 if (user) {
-                    user.leaveTime = `${currentHour}:${currentMinute}:${currentSecond}`
+                    user.joinTime = `${currentHour}:${currentMinute}:${currentSecond}`
+                    user.leaveTime = null
+                } else {
+                    currentAttendees.list.push({
+                        userId,
+                        username: currentUser.username,
+                        surname: currentUser.surname,
+                        joinTime: `${currentHour}:${currentMinute}:${currentSecond}`,
+                        leaveTime: null,
+                    })
                 }
+            } else {
+                meet.attendees.push({
+                    date: currentDate,
+                    list: [
+                        {
+                            userId,
+                            username: currentUser.username,
+                            surname: currentUser.surname,
+                            joinTime: `${currentHour}:${currentMinute}:${currentSecond}`,
+                            leaveTime: null,
+                        },
+                    ],
+                })
             }
 
             await meet.save()
+        } catch (e) {
+            console.log('joinTime error', e)
+        }
+    }
+    socket.join(conferenceId)
+    socket.to(conferenceId).emit('user connected', userId, metadata)
+
+    socket.on('disconnect', async () => {
+        const currentMeet = await Meet.findById(meetId).exec()
+        if (!currentMeet) {
+            return socket.emit('error', { message: 'Meet not found' })
+        }
+
+        const currentTime = new Date()
+        const currentHour = currentTime.getHours()
+        const currentMinute = currentTime.getMinutes()
+        const currentSecond = currentTime.getSeconds()
+
+        signale.info(
+            `A user  ${userId} from this meet ${meetId}  leave from conference ${conferenceId}`
+        )
+
+        if (currentUser) {
+            try {
+                const currentDate = new Date().toLocaleDateString()
+
+                const currentAttendees = currentMeet.attendees.find(
+                    (item) => item.date === currentDate
+                )
+
+                if (currentAttendees) {
+                    const user = currentAttendees.list.find(
+                        (item) => item.userId === userId
+                    )
+
+                    if (user) {
+                        user.leaveTime = `${currentHour}:${currentMinute}:${currentSecond}`
+                    }
+                }
+
+                await currentMeet.save()
+            } catch (e) {
+                console.log('DISCONNECT error leaveTime  ', e)
+            }
         }
 
         socket.to(conferenceId).emit('user disconnected', userId)
