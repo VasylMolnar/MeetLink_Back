@@ -5,7 +5,7 @@ import {
     handlerAccessRes,
     handlerAccessResFollow,
     handlerDeleteMessage,
-    handlerDeleteMessageFollow,
+    handlerDeleteFollow,
 } from '../controllers/accessController'
 
 //Send  message to Admin
@@ -23,7 +23,7 @@ router.post('/follow-access-req', handlerAccessReqFollow)
 //Get message from User
 router.post('/follow-access-res', handlerAccessResFollow)
 
-//Delete User message
-router.delete('/follow-access-delete', handlerDeleteMessageFollow)
+//Delete follow user
+router.delete('/delete-follow-user', handlerDeleteFollow)
 
 module.exports = router
