@@ -3,6 +3,51 @@ import bcrypt from 'bcrypt'
 import User from '../model/User'
 import Meet from '../model/Meet'
 
+//Get users list
+const handleGetUsersList = async (req: any, res: any) => {
+    const { id: search } = req.params
+    if (!search) return res.status(400).json({ message: 'Search is required.' })
+
+    //find user by id
+    try {
+        const usersList = await User.find(
+            {
+                $or: [
+                    { email: search },
+                    { username: search },
+                    { surname: search },
+                ],
+            },
+            '-password -date -refreshToken -meetList -messages -email -friendsList -__v'
+        ).exec()
+        res.status(201).send(usersList)
+    } catch (error) {
+        console.error('Error fetching user:', error)
+        res.status(500).json({ message: 'Internal Server Error' })
+    }
+}
+
+//Get user info
+const handleGetUserInfo = async (req: any, res: any) => {
+    const { id } = req.params
+    if (!id) return res.status(400).json({ message: 'User id is required.' })
+
+    //find user by id
+    try {
+        let currentUser = await User.findById(
+            id,
+            '-password -date -refreshToken -meetList -messages -__v'
+        ).exec()
+
+        if (!currentUser)
+            return res.status(401).json({ message: 'User not found.' })
+        res.status(201).send(currentUser)
+    } catch (error) {
+        console.error('Error fetching user:', error)
+        res.status(500).json({ message: 'Internal Server Error' })
+    }
+}
+
 //Get user
 const handleGetUser = async (req: any, res: any) => {
     const { id } = req.params
@@ -19,30 +64,55 @@ const handleGetUser = async (req: any, res: any) => {
         if (!currentUser)
             return res.status(401).json({ message: 'User not found.' })
 
+        let meetDetails: any = []
+        let userDetails: any = []
+
         //Find all meet when user is invited
-        //if user is not invited
-        if (currentUser.meetList.length === 0) {
-            return res.status(200).json(currentUser)
+        if (currentUser.meetList.length !== 0) {
+            //if user is invited we find all meet by meetList -> id
+            const meetIds = currentUser.meetList
+
+            meetDetails = await Meet.find({
+                _id: { $in: meetIds },
+                userList: id,
+            })
+
+            // filter incorrect meetId (if admin delete meet)
+            //@ts-ignore
+            const validMeetIds = meetDetails.map((meet) => meet._id.toString())
+            currentUser.meetList = currentUser.meetList.filter((meetId) =>
+                validMeetIds.includes(meetId)
+            )
+
+            await currentUser.save()
         }
 
-        //if user is invited we find all meet by meetList -> id
-        const meetIds = currentUser.meetList
+        if (currentUser.friendsList.length !== 0) {
+            const userIds = currentUser.friendsList
 
-        const meetDetails = await Meet.find({
-            _id: { $in: meetIds },
-            userList: id,
-        })
+            userDetails = await User.find(
+                {
+                    _id: { $in: userIds },
+                    friendsList: id,
+                },
+                '-password -date -refreshToken -meetList -messages -__v'
+            )
 
-        // filter incorrect meetId (if admin delete meet)
-        const validMeetIds = meetDetails.map((meet) => meet._id.toString())
-        currentUser.meetList = currentUser.meetList.filter((meetId) =>
-            validMeetIds.includes(meetId)
-        )
+            // filter incorrect userId
+            //@ts-ignore
+            const validUserIds = userDetails.map((user) => user._id.toString())
 
-        await currentUser.save()
+            currentUser.friendsList = currentUser.friendsList.filter(
+                (friendId) => validUserIds.includes(friendId)
+            )
+
+            await currentUser.save()
+        }
 
         currentUser.meetList = meetDetails
-        res.status(201).send(currentUser)
+        currentUser.friendsList = userDetails
+
+        res.status(200).send(currentUser)
     } catch (error) {
         console.error('Error fetching user:', error)
         res.status(500).json({ message: 'Internal Server Error' })
@@ -143,4 +213,11 @@ const handleUploadImg = async (req: any, res: any) => {
     }
 }
 
-export { handleGetUser, handlerUpdateUser, handlerDeleteUser, handleUploadImg }
+export {
+    handleGetUsersList,
+    handleGetUser,
+    handlerUpdateUser,
+    handlerDeleteUser,
+    handleUploadImg,
+    handleGetUserInfo,
+}
