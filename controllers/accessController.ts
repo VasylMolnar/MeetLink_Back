@@ -185,21 +185,8 @@ const handlerAccessResFollow = async (req: any, res: any) => {
         )
 
         if (access) {
-            currentUser.friendsList.push({
-                userId: followUser._id,
-                username: followUser.username,
-                surname: followUser.surname,
-                email: followUser.email,
-                avatar: followUser.avatar,
-            })
-
-            followUser.friendsList.push({
-                userId: currentUser._id,
-                username: currentUser.username,
-                surname: currentUser.surname,
-                email: currentUser.email,
-                avatar: currentUser.avatar,
-            })
+            currentUser.friendsList.push(followUserId)
+            followUser.friendsList.push(userId)
 
             followUser.messages.push({
                 _id: new mongoose.Types.ObjectId(),
@@ -239,12 +226,12 @@ const handlerDeleteFollow = async (req: any, res: any) => {
     try {
         //@ts-ignore
         currentUser.friendsList = currentUser.friendsList.filter(
-            (friend) => friend.userId !== followUserId
+            (friendId) => friendId !== followUserId
         )
 
         //@ts-ignore
         followUser.friendsList = followUser.friendsList.filter(
-            (friend) => friend.userId !== userId
+            (friendId) => friendId !== userId
         )
 
         await currentUser.save()
