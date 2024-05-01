@@ -37,7 +37,7 @@ const handlerGetCurrentMeet = async (req: any, res: any) => {
 
         currentMeet.userList = userDetails
 
-        res.status(201).send(currentMeet)
+        res.status(200).send(currentMeet)
     } catch (error) {
         // console.error('Error fetching user:', error)
         res.status(500).json({ message: 'Internal Server Error' })
