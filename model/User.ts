@@ -1,29 +1,6 @@
 import mongoose from 'mongoose'
 import { Schema } from 'mongoose'
 
-const friendsList = new Schema({
-    userId: {
-        type: String,
-        required: true,
-    },
-
-    username: {
-        type: String,
-        required: true,
-    },
-
-    surname: {
-        type: String,
-        required: true,
-    },
-
-    avatar: {
-        name: { type: String },
-        data: { type: Buffer },
-        contentType: { type: String },
-    },
-})
-
 const userSchema = new Schema({
     email: {
         type: String,
@@ -73,7 +50,9 @@ const userSchema = new Schema({
 
     messages: [{ type: Schema.Types.Mixed }],
 
-    friendsList: [friendsList],
+    friendsList: [{ type: Schema.Types.Mixed }],
+
+    // friendsList: [friendsList],
 
     refreshToken: {
         type: String,
