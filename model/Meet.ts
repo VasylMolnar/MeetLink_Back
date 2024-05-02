@@ -105,15 +105,3 @@ const meetSchema = new Schema({
 })
 
 export default mongoose.model('Meet', meetSchema)
-
-// [
-//     {
-//         date:{
-//             type: Date,
-//             default: new Date
-//         },
-//         [attendeesSchema]
-
-//     }
-
-// ]
