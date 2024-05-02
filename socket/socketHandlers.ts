@@ -141,10 +141,13 @@ const handlerJoinConference = async ({
             const currentMinute = currentTime.getMinutes()
             const currentSecond = currentTime.getSeconds()
 
-            const currentDate = new Date().toLocaleDateString()
+            const currentDate = new Date()
+            const day = currentDate.getDate()
+            const month = currentDate.getMonth() + 1
+            const year = currentDate.getFullYear()
 
             const currentAttendees = meet.attendees.find(
-                (item) => item.date === currentDate
+                (item) => item.date === `${day}/${month}/${year}`
             )
 
             if (currentAttendees) {
@@ -166,7 +169,7 @@ const handlerJoinConference = async ({
                 }
             } else {
                 meet.attendees.push({
-                    date: currentDate,
+                    date: `${day}/${month}/${year}`,
                     list: [
                         {
                             userId,
@@ -204,10 +207,13 @@ const handlerJoinConference = async ({
 
         if (currentUser) {
             try {
-                const currentDate = new Date().toLocaleDateString()
+                const currentDate = new Date()
+                const day = currentDate.getDate()
+                const month = currentDate.getMonth() + 1
+                const year = currentDate.getFullYear()
 
                 const currentAttendees = currentMeet.attendees.find(
-                    (item) => item.date === currentDate
+                    (item) => item.date === `${day}/${month}/${year}`
                 )
 
                 if (currentAttendees) {
