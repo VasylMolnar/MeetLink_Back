@@ -6,6 +6,8 @@ import {
     handleUploadImg,
     handleGetUserInfo,
     handleGetUsersList,
+    handlerCreateMessages,
+    handlerDeleteMessages,
 } from '../controllers/userController'
 
 import multer from 'multer'
@@ -22,7 +24,11 @@ router.post('/:id/uploads', upload.single('image'), handleUploadImg)
 // get current user info (secret method)
 router.get('/info/:id', handleGetUserInfo)
 
-// get users list
+// get users list (secret method)
 router.get('/list/:id', handleGetUsersList)
+
+//individual messages (secret method)
+router.post('/messages', handlerCreateMessages)
+router.delete('/messages/:id', handlerDeleteMessages)
 
 module.exports = router
