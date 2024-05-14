@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import User from '../model/User'
 import Meet from '../model/Meet'
+import IndividualMessages from '../model/IndividualMessages'
+import { v4 as uuidv4 } from 'uuid'
 
 //Get users list
 const handleGetUsersList = async (req: any, res: any) => {
@@ -18,7 +20,7 @@ const handleGetUsersList = async (req: any, res: any) => {
                     { surname: search },
                 ],
             },
-            '-password -date -refreshToken -meetList -messages -email -friendsList -__v'
+            '-password -date -refreshToken -meetList -messages -individualMessages -individualCall -friendsList -__v'
         ).exec()
         res.status(201).send(usersList)
     } catch (error) {
@@ -36,12 +38,12 @@ const handleGetUserInfo = async (req: any, res: any) => {
     try {
         let currentUser = await User.findById(
             id,
-            '-password -date -refreshToken -meetList -messages -__v'
+            '-password -date -refreshToken -meetList -messages -individualMessages -individualCall -__v'
         ).exec()
 
         if (!currentUser)
             return res.status(401).json({ message: 'User not found.' })
-        res.status(201).send(currentUser)
+        res.status(200).send(currentUser)
     } catch (error) {
         console.error('Error fetching user:', error)
         res.status(500).json({ message: 'Internal Server Error' })
@@ -66,6 +68,7 @@ const handleGetUser = async (req: any, res: any) => {
 
         let meetDetails: any = []
         let userDetails: any = []
+        let individualMessagesDetails: any = []
 
         //Find all meet when user is invited
         if (currentUser.meetList.length !== 0) {
@@ -109,6 +112,30 @@ const handleGetUser = async (req: any, res: any) => {
             await currentUser.save()
         }
 
+        if (currentUser.individualMessages.length !== 0) {
+            const messagesId = currentUser.individualMessages
+
+            const messagesCollection = await IndividualMessages.find({
+                _id: { $in: messagesId },
+                userList: id,
+            })
+
+            individualMessagesDetails = await Promise.all(
+                messagesCollection.map(async (messages) => {
+                    const userIds = messages.userList
+                    const userInfo = await User.find(
+                        {
+                            _id: { $in: userIds },
+                        },
+                        '-password -date -friendsList -email -city -phoneNumber -region -refreshToken -meetList -individualCall -individualMessages -messages -__v'
+                    )
+
+                    return { messageInfo: messages, userInfo }
+                })
+            )
+        }
+
+        currentUser.individualMessages = individualMessagesDetails
         currentUser.meetList = meetDetails
         currentUser.friendsList = userDetails
 
@@ -213,6 +240,83 @@ const handleUploadImg = async (req: any, res: any) => {
     }
 }
 
+//User individual messages
+const handlerCreateMessages = async (req: any, res: any) => {
+    const { myId, userId } = req.body
+
+    if (!myId || !userId)
+        return res.status(400).json({ message: 'User id is required.' })
+
+    //find myId
+    const myInfo = await User.findById({ _id: myId }).exec()
+    if (!myInfo) return res.status(501).json({ message: 'User not found.' })
+
+    //find userId
+    const currentUser = await User.findById({ _id: userId }).exec()
+    if (!currentUser)
+        return res.status(501).json({ message: 'User not found.' })
+
+    try {
+        const currentMessage = await IndividualMessages.create({
+            userList: [myId, userId],
+            chatRoomId: uuidv4(),
+            messages: [],
+        })
+
+        myInfo.individualMessages.push(currentMessage._id.toString())
+        currentUser.individualMessages.push(currentMessage._id.toString())
+
+        await myInfo.save()
+        await currentUser.save()
+
+        res.status(200).json({
+            message: `Message created!`,
+            id: currentMessage._id,
+        })
+    } catch (e) {
+        res.status(501).json({ message: 'Message cant be create' })
+    }
+}
+
+const handlerDeleteMessages = async (req: any, res: any) => {
+    const { messageId, userId } = req.body
+
+    if (!messageId || !userId)
+        return res.status(400).json({ message: 'User id is required.' })
+
+    //find current user
+    const currentUser = await User.findById({ _id: userId }).exec()
+    if (!currentUser)
+        return res.status(501).json({ message: 'User not found.' })
+
+    const currentMessage = await IndividualMessages.findById({
+        _id: messageId,
+    }).exec()
+    if (!currentMessage)
+        return res.status(501).json({ message: 'Message not found.' })
+
+    try {
+        currentUser.individualMessages = currentUser.individualMessages.filter(
+            (id) => id !== messageId
+        )
+
+        await currentUser.save()
+
+        if (currentMessage.lastDelete === true) {
+            await IndividualMessages.findByIdAndDelete({ _id: messageId })
+        } else {
+            currentMessage.lastDelete = true
+            await currentMessage.save()
+        }
+
+        res.status(200).json({
+            message: `Message delete!`,
+        })
+    } catch (e) {
+        res.status(501).json({ message: 'Message cant be delete' })
+    }
+}
+
 export {
     handleGetUsersList,
     handleGetUser,
@@ -220,4 +324,6 @@ export {
     handlerDeleteUser,
     handleUploadImg,
     handleGetUserInfo,
+    handlerCreateMessages,
+    handlerDeleteMessages,
 }
