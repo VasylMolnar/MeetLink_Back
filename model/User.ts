@@ -45,14 +45,20 @@ const userSchema = new Schema({
         contentType: { type: String },
     },
 
-    // meetList: [{ type: String }],
+    //list all meet
     meetList: [{ type: Schema.Types.Mixed }],
 
+    //list all access message
     messages: [{ type: Schema.Types.Mixed }],
 
+    //list all friends
     friendsList: [{ type: Schema.Types.Mixed }],
 
-    // friendsList: [friendsList],
+    //list individual message 2 person
+    individualMessages: [{ type: Schema.Types.Mixed }],
+
+    //individual call 2 person
+    individualCall: [{ type: Schema.Types.Mixed }],
 
     refreshToken: {
         type: String,
