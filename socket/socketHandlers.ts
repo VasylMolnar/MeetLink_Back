@@ -1,6 +1,7 @@
 import signale from 'signale'
 import Meet from '../model/Meet'
 import User from '../model/User'
+import IndividualMessages from '../model/IndividualMessages'
 
 interface IRoom {
     io?: any
@@ -11,6 +12,8 @@ interface IRoom {
     conferenceId?: string
     data?: any
     metadata?: any
+    chatId?: any
+    individualMessageId?: any
 }
 
 // chat
@@ -368,6 +371,133 @@ const handlerSendNewMeetMessage = async ({ io, socket, data }: IRoom) => {
     }
 }
 
+//individual messages
+const handlerJoinMessageRoom = async ({
+    socket,
+    individualMessageId,
+    roomId,
+    userId,
+}: IRoom) => {
+    if (!individualMessageId || !roomId || !userId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    //find individual Message
+    const currentMessage = await IndividualMessages.findById(
+        individualMessageId
+    ).exec()
+
+    if (!currentMessage) {
+        return socket.emit('error', { message: 'Message not found' })
+    }
+
+    if (!currentMessage.userList.some((id) => id === userId)) {
+        return socket.emit('error', {
+            message: 'Access denied!',
+        })
+    }
+
+    try {
+        if (currentMessage.status === userId) {
+            currentMessage.status = ''
+            await currentMessage.save()
+        }
+    } catch (error) {
+        signale.error('Failed to save:', error)
+
+        return socket.emit('error', {
+            message: 'Failed to save',
+        })
+    }
+
+    signale.info(`A user ${userId} join to chat room ${roomId}`)
+    socket.join(roomId)
+
+    socket.emit('loadMessage', currentMessage.messages)
+
+    // User Leave from room
+    socket.on('disconnect', () => {
+        signale.info(`A user ${userId} leave from room ${roomId}`)
+        socket.leave(roomId)
+    })
+}
+
+const handlerSendMessage = async ({ io, socket, data }: IRoom) => {
+    const {
+        messageId,
+        roomId,
+        message,
+        senderId,
+        username,
+        surname,
+        avatar,
+        recipient,
+    } = data
+
+    if (
+        !messageId ||
+        !roomId ||
+        !message ||
+        !senderId ||
+        !username ||
+        !surname ||
+        !recipient
+    ) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    //find individual Message
+    const currentMessage = await IndividualMessages.findById(messageId).exec()
+
+    if (!currentMessage) {
+        return socket.emit('error', { message: 'Message not found' })
+    }
+
+    if (currentMessage.chatRoomId !== roomId) {
+        return socket.emit('error', { message: 'Room not found' })
+    }
+
+    if (!currentMessage.userList.some((user) => user === senderId)) {
+        return socket.emit('error', {
+            message: 'Access denied!',
+        })
+    }
+
+    try {
+        if (currentMessage.lastDelete === true) {
+            const currentUser = await User.findById({ _id: recipient }).exec()
+            if (!currentUser)
+                return socket.emit('error', {
+                    message: 'Message cant be sent',
+                })
+
+            currentUser.individualMessages.push(currentMessage._id.toString())
+            currentMessage.lastDelete = false
+
+            await currentUser.save()
+        }
+
+        currentMessage.messages.push({
+            senderId,
+            username,
+            surname,
+            message,
+            avatar,
+        })
+
+        currentMessage.status = recipient
+        await currentMessage.save()
+
+        io.to(roomId).emit('loadMessage', currentMessage.messages)
+    } catch (error) {
+        signale.error('Failed to save message to database:', error)
+
+        return socket.emit('error', {
+            message: 'Failed to save message',
+        })
+    }
+}
+
 export {
     handlerJoinRoom,
     handlerSendNewMessage,
@@ -376,4 +506,6 @@ export {
     handleToggleMicrophone,
     handleSendNewMetaData,
     handlerSendNewMeetMessage,
+    handlerJoinMessageRoom,
+    handlerSendMessage,
 }

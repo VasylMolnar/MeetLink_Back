@@ -11,6 +11,8 @@ import {
     handleToggleMicrophone,
     handleSendNewMetaData,
     handlerSendNewMeetMessage,
+    handlerJoinMessageRoom,
+    handlerSendMessage,
 } from './socketHandlers'
 
 const app = express()
@@ -33,6 +35,7 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
     signale.info('A user connected to Socket')
 
+    // video and chat in meet
     socket.on('joinRoom', async (meetId, roomId, userId) => {
         // Join to Room and Load message history
         await handlerJoinRoom({ socket, meetId, roomId, userId })
@@ -100,6 +103,27 @@ io.on('connection', (socket) => {
     socket.on('sendNewMeetMessage', async (data) => {
         await handlerSendNewMeetMessage({ io, socket, data })
     })
+
+    //individual message
+    socket.on(
+        'joinMessageRoom',
+        async (individualMessageId, roomId, userId) => {
+            // Join to Room
+            await handlerJoinMessageRoom({
+                socket,
+                individualMessageId,
+                roomId,
+                userId,
+            })
+        }
+    )
+
+    socket.on('sendMessage', async (data) => {
+        // Send new message
+        await handlerSendMessage({ io, socket, data })
+    })
+
+    //individual Call
 
     socket.on('disconnect', () => {
         signale.info('A user disconnected ')
