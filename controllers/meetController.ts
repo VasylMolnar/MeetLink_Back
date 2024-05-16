@@ -25,7 +25,7 @@ const handlerGetCurrentMeet = async (req: any, res: any) => {
                 _id: { $in: userIds },
                 meetList: id,
             },
-            '-password -date -refreshToken -meetList -messages -__v'
+            '-password -publicRoomId -date -refreshToken -meetList -messages -individualMessages -individualCall -friendsList -__v'
         )
 
         const validUserIds = userDetails.map((user) => user._id.toString())

@@ -20,7 +20,7 @@ const handleGetUsersList = async (req: any, res: any) => {
                     { surname: search },
                 ],
             },
-            '-password -date -refreshToken -meetList -messages -individualMessages -individualCall -friendsList -__v'
+            '-password -publicRoomId -date -refreshToken -meetList -messages -individualMessages -individualCall -friendsList -__v'
         ).exec()
         res.status(201).send(usersList)
     } catch (error) {
@@ -38,7 +38,7 @@ const handleGetUserInfo = async (req: any, res: any) => {
     try {
         let currentUser = await User.findById(
             id,
-            '-password -date -refreshToken -meetList -messages -individualMessages -individualCall -__v'
+            '-password -publicRoomId -date -refreshToken -meetList -messages -individualMessages -individualCall -__v'
         ).exec()
 
         if (!currentUser)
@@ -60,7 +60,7 @@ const handleGetUser = async (req: any, res: any) => {
     try {
         let currentUser = await User.findById(
             id,
-            '-password -date -refreshToken  -__v'
+            '-password -publicRoomId -date -refreshToken  -__v'
         ).exec()
 
         if (!currentUser)
@@ -98,7 +98,7 @@ const handleGetUser = async (req: any, res: any) => {
                     _id: { $in: userIds },
                     friendsList: id,
                 },
-                '-password -date -refreshToken -meetList -messages -__v'
+                '-password -publicRoomId -date -refreshToken -meetList -messages -__v'
             )
 
             // filter incorrect userId
@@ -127,7 +127,7 @@ const handleGetUser = async (req: any, res: any) => {
                         {
                             _id: { $in: userIds },
                         },
-                        '-password -date -friendsList -email -city -phoneNumber -region -refreshToken -meetList -individualCall -individualMessages -messages -__v'
+                        '-password -publicRoomId -date -friendsList -email -city -phoneNumber -region -refreshToken -meetList -individualCall -individualMessages -messages -__v'
                     )
 
                     return { messageInfo: messages, userInfo }
