@@ -2,6 +2,7 @@ import User from '../model/User'
 import { format } from 'date-fns'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { v4 as uuidv4 } from 'uuid'
 
 // Register new user
 const handleRegister = async (req: any, res: any) => {
@@ -74,6 +75,7 @@ const handleLogin = async (req: any, res: any) => {
         )
 
         currentUser.refreshToken = refreshToken
+        currentUser.publicRoomId = uuidv4()
         await currentUser.save()
 
         res.cookie('NewRequestJWT', refreshToken, {
@@ -83,7 +85,7 @@ const handleLogin = async (req: any, res: any) => {
             maxAge: 24 * 60 * 60 * 1000,
         })
 
-        res.json({ accessToken })
+        res.json({ accessToken, publicRoomId: currentUser.publicRoomId })
     } else {
         return res.status(401).json({
             message: 'Email or password error.',
@@ -112,6 +114,7 @@ const handleLogout = async (req: any, res: any) => {
     }
 
     currentUser.refreshToken = ''
+    currentUser.publicRoomId = ''
     await currentUser.save()
 
     res.clearCookie('NewRequestJWT', {
