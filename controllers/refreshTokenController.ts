@@ -1,6 +1,7 @@
 import User from '../model/User'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
+import { v4 as uuidv4 } from 'uuid'
 
 export const handleRefreshJWT = async (req: any, res: any) => {
     const cookies = req.cookies
@@ -20,7 +21,7 @@ export const handleRefreshJWT = async (req: any, res: any) => {
         `${process.env.REFRESH_TOKEN_SECRET}`,
         async (err: any, decoded: any) => {
             //user email === REFRESH_TOKEN decoded {email} authCont...
-            if (err || currentUser.email !== decoded.email) {
+            if (err || currentUser.email !== (await decoded.email)) {
                 return res.sendStatus(403)
             }
 
@@ -38,7 +39,8 @@ export const handleRefreshJWT = async (req: any, res: any) => {
                 }
             )
 
-            res.json({ accessToken })
+            //res.json({ accessToken })
+            res.json({ accessToken, publicRoomId: currentUser.publicRoomId })
         }
     )
 }
