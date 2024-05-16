@@ -13,6 +13,7 @@ import {
     handlerSendNewMeetMessage,
     handlerJoinMessageRoom,
     handlerSendMessage,
+    handlerJoinPublicRoom,
 } from './socketHandlers'
 
 const app = express()
@@ -34,6 +35,11 @@ const io = new Server(server, {
 // WebSocket
 io.on('connection', (socket) => {
     signale.info('A user connected to Socket')
+
+    //public room
+    socket.on('joinPublicRoom', async (publicRoomId, userId) => {
+        await handlerJoinPublicRoom({ socket, publicRoomId, userId })
+    })
 
     // video and chat in meet
     socket.on('joinRoom', async (meetId, roomId, userId) => {
@@ -124,7 +130,6 @@ io.on('connection', (socket) => {
     })
 
     //individual Call
-
     socket.on('disconnect', () => {
         signale.info('A user disconnected ')
         socket.disconnect()

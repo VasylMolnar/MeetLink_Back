@@ -417,7 +417,7 @@ const handlerJoinMessageRoom = async ({
 
     // User Leave from room
     socket.on('disconnect', () => {
-        signale.info(`A user ${userId} leave from room ${roomId}`)
+        signale.info(`A user ${userId} leave from chat room ${roomId}`)
         socket.leave(roomId)
     })
 }
@@ -464,6 +464,9 @@ const handlerSendMessage = async ({ io, socket, data }: IRoom) => {
     }
 
     try {
+        const socketsInRoom = io.of('/').adapter.rooms.get(roomId)
+        const numUsersInRoom = socketsInRoom ? socketsInRoom.size : 0
+
         if (currentMessage.lastDelete === true) {
             const currentUser = await User.findById({ _id: recipient }).exec()
             if (!currentUser)
@@ -488,6 +491,38 @@ const handlerSendMessage = async ({ io, socket, data }: IRoom) => {
         currentMessage.status = recipient
         await currentMessage.save()
 
+        //emit reload status in recipient
+        if (numUsersInRoom === 1) {
+            const currentUser = await User.findById({ _id: recipient }).exec()
+            if (!currentUser)
+                return socket.emit('error', {
+                    message: 'Message cant be sent',
+                })
+
+            const recipientPublicRoomId = currentUser.publicRoomId
+
+            //user is online by not see our message
+            if (recipientPublicRoomId) {
+                signale.info(
+                    `A user  ${senderId} join to user public room ${recipientPublicRoomId}`
+                )
+                await socket.join(recipientPublicRoomId)
+                await socket
+                    .to(recipientPublicRoomId)
+                    .emit('reloadState', {
+                        state: 'message',
+                        username,
+                        surname,
+                    })
+
+                // User Leave from room
+                signale.info(
+                    `A user  ${senderId} leave from user public room ${recipientPublicRoomId}`
+                )
+                await socket.leave(recipientPublicRoomId)
+            }
+        }
+
         io.to(roomId).emit('loadMessage', currentMessage.messages)
     } catch (error) {
         signale.error('Failed to save message to database:', error)
@@ -498,7 +533,38 @@ const handlerSendMessage = async ({ io, socket, data }: IRoom) => {
     }
 }
 
+// Join Public Room
+const handlerJoinPublicRoom = async ({ socket, publicRoomId, userId }: any) => {
+    if (!userId || !publicRoomId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    const currentUser = await User.findById(userId).exec()
+    if (!currentUser) {
+        signale.error('A user cant be connected to Socket')
+        return socket.emit('error', { message: 'User not found' })
+    }
+
+    if (
+        !currentUser.publicRoomId ||
+        currentUser.publicRoomId !== publicRoomId
+    ) {
+        signale.error('A user cant be connected to Socket. Access denied!')
+        return socket.emit('error', { message: 'Access denied!' })
+    }
+
+    signale.info(`A user  ${userId} join to room ${publicRoomId}`)
+    socket.join(publicRoomId)
+
+    // User Leave from room
+    socket.on('disconnect', () => {
+        signale.info(`A user  ${userId} leave from room ${publicRoomId}`)
+        socket.leave(publicRoomId)
+    })
+}
+
 export {
+    handlerJoinPublicRoom,
     handlerJoinRoom,
     handlerSendNewMessage,
     handlerJoinConference,
