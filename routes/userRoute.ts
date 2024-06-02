@@ -8,6 +8,8 @@ import {
     handleGetUsersList,
     handlerCreateMessages,
     handlerDeleteMessages,
+    handlerCreateCall,
+    handlerDeleteCall,
 } from '../controllers/userController'
 
 import multer from 'multer'
@@ -30,5 +32,9 @@ router.get('/list/:id', handleGetUsersList)
 //individual messages (secret method)
 router.post('/messages', handlerCreateMessages)
 router.delete('/messages/:id', handlerDeleteMessages)
+
+//individual calls (secret method)
+router.post('/call', handlerCreateCall)
+router.delete('/call/:id', handlerDeleteCall)
 
 module.exports = router
