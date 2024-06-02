@@ -62,7 +62,20 @@ const userSchema = new Schema({
     individualMessages: [{ type: Schema.Types.Mixed }],
 
     //individual call 2 person
-    individualCall: [{ type: Schema.Types.Mixed }],
+    individualCall: [
+        {
+            userInfo: [],
+
+            callRoomId: {
+                type: String,
+                required: true,
+            },
+
+            status: {
+                type: String,
+            },
+        },
+    ],
 
     refreshToken: {
         type: String,
