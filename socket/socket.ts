@@ -14,6 +14,9 @@ import {
     handlerJoinMessageRoom,
     handlerSendMessage,
     handlerJoinPublicRoom,
+    handlerJoinCallRoom,
+    handleCallToggleCamera,
+    handleCallToggleMicrophone,
 } from './socketHandlers'
 
 const app = express()
@@ -130,6 +133,37 @@ io.on('connection', (socket) => {
     })
 
     //individual Call
+    socket.on('joinCallRoom', async (callRoomId, userId, metadata) => {
+        //Join to call
+        await handlerJoinCallRoom({
+            socket,
+            callRoomId,
+            userId,
+            metadata,
+        })
+    })
+
+    socket.on('callToggleCamera', async (callRoomId, userId, isCameraOn) => {
+        await handleCallToggleCamera({
+            socket,
+            callRoomId,
+            userId,
+            isCameraOn,
+        })
+    })
+
+    socket.on(
+        'callToggleMicrophone',
+        async (callRoomId, userId, isMicrophoneOn) => {
+            await handleCallToggleMicrophone({
+                socket,
+                callRoomId,
+                userId,
+                isMicrophoneOn,
+            })
+        }
+    )
+
     socket.on('disconnect', () => {
         signale.info('A user disconnected ')
         socket.disconnect()
