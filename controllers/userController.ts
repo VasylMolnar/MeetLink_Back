@@ -69,6 +69,7 @@ const handleGetUser = async (req: any, res: any) => {
         let meetDetails: any = []
         let userDetails: any = []
         let individualMessagesDetails: any = []
+        let individualCallsDetails: any = []
 
         //Find all meet when user is invited
         if (currentUser.meetList.length !== 0) {
@@ -121,8 +122,8 @@ const handleGetUser = async (req: any, res: any) => {
             })
 
             individualMessagesDetails = await Promise.all(
-                messagesCollection.map(async (messages) => {
-                    const userIds = messages.userList
+                messagesCollection.map(async (message) => {
+                    const userIds = message.userList
                     const userInfo = await User.find(
                         {
                             _id: { $in: userIds },
@@ -130,11 +131,28 @@ const handleGetUser = async (req: any, res: any) => {
                         '-password -publicRoomId -date -friendsList -email -city -phoneNumber -region -refreshToken -meetList -individualCall -individualMessages -messages -__v'
                     )
 
-                    return { messageInfo: messages, userInfo }
+                    return { messageInfo: message, userInfo }
                 })
             )
         }
 
+        if (currentUser.individualCall.length !== 0) {
+            individualCallsDetails = await Promise.all(
+                currentUser.individualCall.map(async (call) => {
+                    const userId = call.userInfo
+                    const userInfo = await User.find(
+                        {
+                            _id: { $in: userId },
+                        },
+                        '-password -publicRoomId -date -friendsList -city -phoneNumber -region -refreshToken -meetList -individualCall -individualMessages -messages -__v'
+                    )
+
+                    return { ...call, userInfo }
+                })
+            )
+        }
+
+        currentUser.individualCall = individualCallsDetails
         currentUser.individualMessages = individualMessagesDetails
         currentUser.meetList = meetDetails
         currentUser.friendsList = userDetails
@@ -317,6 +335,76 @@ const handlerDeleteMessages = async (req: any, res: any) => {
     }
 }
 
+//User individual calls
+const handlerCreateCall = async (req: any, res: any) => {
+    const { myId, userId } = req.body
+
+    if (!myId || !userId)
+        return res.status(400).json({ message: 'User id is required.' })
+
+    //find myId
+    const myInfo = await User.findById({ _id: myId }).exec()
+    if (!myInfo) return res.status(501).json({ message: 'User not found.' })
+
+    //find userId
+    const currentUser = await User.findById({ _id: userId }).exec()
+    if (!currentUser)
+        return res.status(501).json({ message: 'User not found.' })
+
+    try {
+        const callRoomId = uuidv4()
+
+        myInfo.individualCall.push({
+            userInfo: [userId],
+            callRoomId: callRoomId,
+            status: 'old-call',
+        })
+
+        currentUser.individualCall.push({
+            userInfo: [myId],
+            callRoomId: callRoomId,
+            status: 'new-call',
+        })
+
+        await myInfo.save()
+        await currentUser.save()
+
+        res.status(200).json({
+            message: `Call created!`,
+            id: callRoomId,
+        })
+    } catch (e) {
+        res.status(501).json({ message: 'Call cant be create' })
+    }
+}
+
+const handlerDeleteCall = async (req: any, res: any) => {
+    const { callId, userId } = req.body
+
+    if (!callId || !userId)
+        return res.status(400).json({ message: 'User id is required.' })
+
+    //find current user
+    const currentUser = await User.findById({ _id: userId }).exec()
+    if (!currentUser)
+        return res.status(501).json({ message: 'User not found.' })
+
+    try {
+        //@ts-ignore
+        currentUser.individualCall = currentUser.individualCall.filter(
+            (call) => call._id?.toString() !== callId
+        )
+
+        await currentUser.save()
+
+        res.status(200).json({
+            message: `Call delete!`,
+        })
+    } catch (e) {
+        res.status(501).json({ message: 'Call cant be delete' })
+    }
+}
+
 export {
     handleGetUsersList,
     handleGetUser,
@@ -326,4 +414,6 @@ export {
     handleGetUserInfo,
     handlerCreateMessages,
     handlerDeleteMessages,
+    handlerCreateCall,
+    handlerDeleteCall,
 }
