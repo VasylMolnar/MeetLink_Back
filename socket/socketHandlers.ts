@@ -507,13 +507,11 @@ const handlerSendMessage = async ({ io, socket, data }: IRoom) => {
                     `A user  ${senderId} join to user public room ${recipientPublicRoomId}`
                 )
                 await socket.join(recipientPublicRoomId)
-                await socket
-                    .to(recipientPublicRoomId)
-                    .emit('reloadState', {
-                        state: 'message',
-                        username,
-                        surname,
-                    })
+                await socket.to(recipientPublicRoomId).emit('reloadState', {
+                    state: 'message',
+                    username,
+                    surname,
+                })
 
                 // User Leave from room
                 signale.info(
@@ -563,6 +561,54 @@ const handlerJoinPublicRoom = async ({ socket, publicRoomId, userId }: any) => {
     })
 }
 
+//individual calls
+const handlerJoinCallRoom = async ({
+    socket,
+    userId,
+    callRoomId,
+    metadata,
+}: any) => {
+    if (!callRoomId || !userId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    signale.info(`A user  ${userId} join to call room ${callRoomId}`)
+    socket.join(callRoomId)
+    socket.to(callRoomId).emit('user connected to call', userId, metadata)
+
+    socket.on('disconnect', async () => {
+        signale.info(`A user  ${userId} leave from call room ${callRoomId}`)
+        socket.to(callRoomId).emit('user disconnected', userId)
+        socket.leave(callRoomId)
+    })
+}
+
+const handleCallToggleCamera = async ({
+    callRoomId,
+    userId,
+    socket,
+    isCameraOn,
+}: any) => {
+    if (!callRoomId || !userId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    socket.to(callRoomId).emit('userToggleCameraCall', userId, isCameraOn)
+}
+
+const handleCallToggleMicrophone = async ({
+    callRoomId,
+    userId,
+    socket,
+    isMicrophoneOn,
+}: any) => {
+    if (!callRoomId || !userId) {
+        return socket.emit('error', { message: 'Missing required fields' })
+    }
+
+    socket.to(callRoomId).emit('userToggleMicroCall', userId, isMicrophoneOn)
+}
+
 export {
     handlerJoinPublicRoom,
     handlerJoinRoom,
@@ -574,4 +620,7 @@ export {
     handlerSendNewMeetMessage,
     handlerJoinMessageRoom,
     handlerSendMessage,
+    handlerJoinCallRoom,
+    handleCallToggleCamera,
+    handleCallToggleMicrophone,
 }
